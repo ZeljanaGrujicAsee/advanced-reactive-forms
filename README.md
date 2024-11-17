@@ -1,27 +1,51 @@
-# AdvancedReactiveForms
+# Advanced Reactive Forms in Angular
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 18.2.3.
+## Description
+This repository is part of the Angular Advanced Course, focusing on Reactive Forms. The course includes advanced concepts such as nested `FormGroup`s, dynamic `FormArray`s, and custom validators to create dynamic and complex forms.
 
-## Development server
+## Prerequisites
+- **Angular CLI**: Version 17+
+- **Node.js**: Version 16+
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+## Installation
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/aleksa520/advanced-reactive-forms.git
+   ```
+2. **Navigate to the project directory**:
+   ```bash
+   cd advanced-reactive-forms
+   ```
+3. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+4. **Run the project**:
+   ```bash
+   ng serve
+   ```
+5. **Access the app**:
+   - Open a browser and go to `http://localhost:4200/`.
 
-## Code scaffolding
+## Features
+- **Nested FormGroup**: Manage complex forms by logically grouping related form controls.
+- **FormArray for Dynamic Controls**: Add or remove form fields dynamically, such as adding multiple subtasks.
+- **Custom Validators**: Create both synchronous and asynchronous validators for form controls.
+- **Hands-on Session**: Follow along with the live coding session to practice building complex reactive forms.
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+## Branches
+- **main**: Contains the initial setup of the project.
+- **starter-code**: This branch includes starter code for participants to follow along with the session.
+- **completed-version**: Final version of the project including all completed examples and exercises covered in the session.
 
-## Build
+## Tags
+- **v1.0**: The starting point of the course.
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+## Notes for Participants
+- Please make sure to use **Node.js version 16+** and **Angular CLI version 17+** to avoid compatibility issues.
+- For any questions or issues, feel free to reach out to me via GitHub.
 
-## Running unit tests
-
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
-
-## Running end-to-end tests
-
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
-
-## Further help
-
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+## Useful Links
+- [Angular Reactive Forms Documentation](https://angular.io/guide/reactive-forms)
+- [Angular CLI Documentation](https://angular.io/cli)
+- [Node.js Download](https://nodejs.org/en/download/)
