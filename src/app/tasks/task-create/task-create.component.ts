@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, Inject, OnInit } from '@angular/core';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { forbiddenTitleValidator } from '../../validators/forbidden-title.validator';
 import { dateRangeValidator } from '../../validators/date-range.validator';
@@ -6,6 +6,9 @@ import { ValidationMessageComponent } from '../../shared/validation-message/vali
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { tasks } from '../tasks-mock';
+import { TaskService } from '../../services/task.service';
+import { LOGGER_SERVICES } from '../../services/logger.tokens';
+import { LoggerService } from '../../services/logger.service';
 
 @Component({
   selector: 'app-task-create',
@@ -18,7 +21,11 @@ export class TaskCreateComponent implements OnInit {
   taskForm: FormGroup;
   formSubmitted = false;
 
-  constructor(private fb: FormBuilder, private router: Router) {
+  constructor(
+    private fb: FormBuilder,
+    private router: Router,
+    private taskService: TaskService,
+    @Inject(LOGGER_SERVICES) private loggers: LoggerService[]) {
     this.taskForm = this.fb.group({
       title: ['', [Validators.required, Validators.minLength(5), forbiddenTitleValidator(['Test', 'Forbidden'])]],
       description: ['', Validators.required],
@@ -33,6 +40,7 @@ export class TaskCreateComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.log('TaskCreateComponent initialized.');
     this.taskForm.get('startDate')?.valueChanges.subscribe((startDateValue) => {
       const dueDateControl = this.taskForm.get('dueDate');
 
@@ -64,18 +72,29 @@ export class TaskCreateComponent implements OnInit {
   addSubtask(): void {
     if (this.subtasks.length < 3) {
       this.subtasks.push(this.fb.control('', Validators.required));
+      this.log('New subtask added to the form.');
     }
   }
 
   onSubmit() {
     if (this.taskForm.valid) {
+      const subtasks = this.subtasks.controls.map(control => {
+        return {
+          title: control.value
+        };
+      });
+
       const newTask = {
         id: tasks.length + 1,
-        ...this.taskForm.value,
+        title: this.taskForm.value.title,
+        description: this.taskForm.value.description,
+        startDate: this.taskForm.value.startDate,
+        dueDate: this.taskForm.value.dueDate,
         status: 'Pending',
+        subtasks: subtasks
       };
 
-      tasks.push(newTask);
+      this.taskService.addTask(newTask);
 
       console.log('New Task:', newTask);
       window.alert('Task created successfully!');
@@ -88,5 +107,9 @@ export class TaskCreateComponent implements OnInit {
 
   goBack() {
     this.router.navigate(['/tasks']);
+  }
+
+  private log(message: string): void {
+    this.loggers.forEach(logger => logger.log(message));
   }
 }

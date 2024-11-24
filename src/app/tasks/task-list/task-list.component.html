@@ -6,6 +6,7 @@
             <p>{{ task.description }}</p>
             <small>Due Date: {{ task.dueDate }}</small>
             <span>Status: {{ task.status }}</span>
+            <button class="delete-button" (click)="deleteTask(task.id, $event)">Delete</button>
         </li>
     </ul>
     <button (click)="navigateToCreateTask()">Create New Task</button>

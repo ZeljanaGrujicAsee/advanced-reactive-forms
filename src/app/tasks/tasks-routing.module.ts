@@ -14,6 +14,6 @@ export const tasksRoutes: Routes = [
   {
     path: 'edit/:id',
     loadComponent: () =>
-      import('./task-edit/task-edit.component').then((m) => m.TaskEditComponent),
+      import('./task-overview/task-overview.component').then((m) => m.TaskOverviewComponent),
   },
 ];
