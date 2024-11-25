@@ -5,7 +5,6 @@ import { dateRangeValidator } from '../../validators/date-range.validator';
 import { ValidationMessageComponent } from '../../shared/validation-message/validation-message.component';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { tasks } from '../tasks-mock';
 import { TaskService } from '../../services/task.service';
 import { LOGGER_SERVICES } from '../../services/logger.tokens';
 import { LoggerService } from '../../services/logger.service';
@@ -19,20 +18,20 @@ import { LoggerService } from '../../services/logger.service';
 })
 export class TaskCreateComponent implements OnInit {
   taskForm: FormGroup;
-  formSubmitted = false;
 
   constructor(
     private fb: FormBuilder,
     private router: Router,
     private taskService: TaskService,
-    @Inject(LOGGER_SERVICES) private loggers: LoggerService[]) {
+    @Inject(LOGGER_SERVICES) private loggers: LoggerService[]
+  ) {
     this.taskForm = this.fb.group({
       title: ['', [Validators.required, Validators.minLength(5), forbiddenTitleValidator(['Test', 'Forbidden'])]],
       description: ['', Validators.required],
       startDate: ['', Validators.required],
       dueDate: ['', Validators.required],
       subtasks: this.fb.array([]),
-      teamAssignment: this.fb.group({ // Adding a nested form group for team assignment
+      teamAssignment: this.fb.group({
         teamMemberName: ['', Validators.required],
         role: ['', Validators.required]
       })
@@ -76,36 +75,44 @@ export class TaskCreateComponent implements OnInit {
     }
   }
 
-  onSubmit() {
+  onSubmit(): void {
     if (this.taskForm.valid) {
       const subtasks = this.subtasks.controls.map(control => {
-        return {
-          title: control.value
-        };
+        return { title: control.value };
       });
 
       const newTask = {
-        id: tasks.length + 1,
+        id: Math.floor(Math.random() * 10000), // Generate a temporary unique ID
         title: this.taskForm.value.title,
         description: this.taskForm.value.description,
         startDate: this.taskForm.value.startDate,
         dueDate: this.taskForm.value.dueDate,
         status: 'Pending',
-        subtasks: subtasks
+        subtasks: subtasks,
+        teamAssignment: {
+          teamMemberName: this.taskForm.value.teamAssignment.teamMemberName,
+          role: this.taskForm.value.teamAssignment.role
+        }
       };
 
-      this.taskService.addTask(newTask);
-
-      console.log('New Task:', newTask);
-      window.alert('Task created successfully!');
-
-      this.taskForm.reset();
-
-      this.router.navigate(['/tasks']);
+      this.taskService.addTask(newTask).subscribe({
+        next: () => {
+          console.log('New Task:', newTask);
+          window.alert('Task created successfully!');
+          this.taskForm.reset();
+          this.router.navigate(['/tasks']);
+        },
+        error: (err) => {
+          console.error('Error creating task:', err);
+          window.alert('An error occurred while creating the task. Please try again.');
+        }
+      });
+    } else {
+      this.log('Form submission failed due to validation errors.');
     }
   }
 
-  goBack() {
+  goBack(): void {
     this.router.navigate(['/tasks']);
   }
 
