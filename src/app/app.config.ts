@@ -6,6 +6,7 @@ import { LoggerService } from './services/logger.service';
 import { ConsoleLoggerService } from './services/console-logger.service';
 import { FileLoggerService } from './services/file-logger.service';
 import { LOGGER_SERVICES } from './services/logger.tokens';
+import { provideHttpClient } from '@angular/common/http';
 
 export function loggerFactory(): LoggerService {
   const isDev = true; // Determine this dynamically based on environment
@@ -14,6 +15,7 @@ export function loggerFactory(): LoggerService {
 
 export const appConfig: ApplicationConfig = {
   providers: [
+    provideHttpClient(),
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
     {
