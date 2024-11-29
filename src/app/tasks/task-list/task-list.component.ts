@@ -10,7 +10,7 @@ import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 @Component({
   selector: 'app-task-list',
   standalone: true,
-  imports: [CommonModule, GlobalSpinnerComponent, MatPaginatorModule],
+  imports: [CommonModule, MatPaginatorModule],
   templateUrl: './task-list.component.html',
   styleUrl: './task-list.component.css'
 })
@@ -22,7 +22,6 @@ export class TaskListComponent implements OnInit {
   currentPage = 1;
   totalPages = 0;
   
-  loading = true;
   private taskUpdateSubject = new Subject<Task>();
   private destroy$ = new Subject<void>();
 
@@ -39,8 +38,6 @@ export class TaskListComponent implements OnInit {
   }
 
   loadTasks(page: number = this.currentPage, pageSize: number = this.pageSize): void {
-    this.loading = true; // Set loading to true before starting the request
-
     forkJoin({
       tasksResponse: this.taskService.getTasks(page, pageSize), // Now returning a response with tasks and totalCount
       assignments: this.taskService.getUserAssignments()
@@ -61,11 +58,9 @@ export class TaskListComponent implements OnInit {
           // Update total tasks to reflect the entire task count in the backend
           this.totalTasks = totalCount;
           this.totalPages = Math.ceil(this.totalTasks / this.pageSize);
-          this.loading = false;
           this.logger.log('Tasks and assignments loaded successfully.');
         },
         error: (err) => {
-          this.loading = false;
           this.logger.log(`Error loading tasks and assignments: ${err.message}`);
         }
       });
@@ -74,7 +69,6 @@ export class TaskListComponent implements OnInit {
   updateSingleTask(): void {
     this.taskUpdateSubject.pipe(
       switchMap((updatedTask) => {
-        this.loading = true;
         return this.taskService.updateTask(updatedTask.id, updatedTask);
       })
     ).subscribe({
@@ -86,10 +80,8 @@ export class TaskListComponent implements OnInit {
           }
           this.logger.log('Task updated successfully.');
         }
-        this.loading = false;
       },
       error: (err) => {
-        this.loading = false;
         this.logger.log(`Error updating task: ${err.message}`);
       }
     });
