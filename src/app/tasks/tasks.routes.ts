@@ -19,9 +19,14 @@ export const tasksRoutes: Routes = [
         canDeactivate: [CanDeactivateGuard]
       },
       {
-        path: 'edit/:id',
+        path: 'overview/:id',
         loadComponent: () =>
           import('./task-overview/task-overview.component').then((m) => m.TaskOverviewComponent)
+      },
+      {
+        path: 'edit/:id',
+        loadComponent: () =>
+          import('./task-edit/task-edit.component').then((m) => m.TaskEditComponent)
       },
     ]
   }

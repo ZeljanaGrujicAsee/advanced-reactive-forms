@@ -1,28 +1,42 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Task, TaskService } from '../../services/task.service';
 import { LoggerService } from '../../services/logger.service';
-import { GlobalSpinnerComponent } from '../../shared/global-spinner/global-spinner.component';
-import { forkJoin, Subject, switchMap, takeUntil } from 'rxjs';
+import { BehaviorSubject, forkJoin, map, Observable, Subject, switchMap, takeUntil } from 'rxjs';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { HighlightOverdueDirective } from '../../directives/highlight-overdue.directive';
+import { TaskStatusPipe } from '../../pipes/task-status.pipe';
+import { DaysUntilDuePipe } from '../../pipes/days-until-due.pipe';
 
 @Component({
   selector: 'app-task-list',
   standalone: true,
-  imports: [CommonModule, MatPaginatorModule],
+  imports: [
+    CommonModule,
+    MatPaginatorModule,
+    MatMenuModule,
+    MatIconModule,
+    MatButtonModule,
+    HighlightOverdueDirective,
+    TaskStatusPipe,
+    DaysUntilDuePipe
+  ],
   templateUrl: './task-list.component.html',
-  styleUrl: './task-list.component.css'
+  styleUrls: ['./task-list.component.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class TaskListComponent implements OnInit {
-  tasks: Task[] = [];
+export class TaskListComponent implements OnInit, OnDestroy {
+  tasks$!: Observable<Task[]>; // Observable for tasks list to bind using async pipe
+  private filterSubject = new BehaviorSubject<string>(''); // Subject to manage the filter keyword
 
   totalTasks = 0;
   pageSize = 5;
   currentPage = 1;
-  totalPages = 0;
-  
-  private taskUpdateSubject = new Subject<Task>();
+
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -33,75 +47,72 @@ export class TaskListComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    this.updateSingleTask();
+    this.setupFilteredTasks();
     this.watchQueryParams();
   }
 
-  loadTasks(page: number = this.currentPage, pageSize: number = this.pageSize): void {
-    forkJoin({
-      tasksResponse: this.taskService.getTasks(page, pageSize), // Now returning a response with tasks and totalCount
-      assignments: this.taskService.getUserAssignments()
-    })
-      .pipe(takeUntil(this.destroy$)) // Ensures cleanup on component destruction
-      .subscribe({
-        next: ({ tasksResponse, assignments }) => {
-          // Extract tasks and total count from the response
-          const { tasks, totalCount } = tasksResponse;
-
-          // Enrich tasks with user assignments for display purposes only
-          this.tasks = tasks.map(task => {
-            const assignment = assignments.find(a => a.taskId === task.id);
-            task.teamAssignment = assignment?.teamAssignment; // Set the teamAssignment directly if it exists
-            return task;
-          });
-
-          // Update total tasks to reflect the entire task count in the backend
-          this.totalTasks = totalCount;
-          this.totalPages = Math.ceil(this.totalTasks / this.pageSize);
-          this.logger.log('Tasks and assignments loaded successfully.');
-        },
-        error: (err) => {
-          this.logger.log(`Error loading tasks and assignments: ${err.message}`);
-        }
-      });
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
-  updateSingleTask(): void {
-    this.taskUpdateSubject.pipe(
-      switchMap((updatedTask) => {
-        return this.taskService.updateTask(updatedTask.id, updatedTask);
-      })
-    ).subscribe({
-      next: (updatedTask) => {
-        if (updatedTask) {
-          const index = this.tasks.findIndex(task => task.id === updatedTask.id);
-          if (index !== -1) {
-            this.tasks[index] = updatedTask; // Update the local task list
-          }
-          this.logger.log('Task updated successfully.');
-        }
-      },
-      error: (err) => {
-        this.logger.log(`Error updating task: ${err.message}`);
-      }
-    });
+  // Step 1: Set up the Observable for Tasks with Filtering
+  private setupFilteredTasks(): void {
+    this.tasks$ = this.filterSubject.pipe(
+      switchMap((keyword) =>
+        forkJoin({
+          tasksResponse: this.taskService.getTasks(this.currentPage, this.pageSize),
+          assignments: this.taskService.getUserAssignments(),
+        }).pipe(
+          map(({ tasksResponse, assignments }) => {
+            let tasks = tasksResponse.tasks.map((task) => {
+              const assignment = assignments.find((a) => a.taskId === task.id);
+              task.teamAssignment = assignment?.teamAssignment;
+              return task;
+            });
+
+            // Apply filter if keyword is provided
+            if (keyword) {
+              tasks = tasks.filter((task) =>
+                task.title.toLowerCase().includes(keyword.toLowerCase())
+              );
+              this.logger.log(`Tasks filtered with keyword: ${keyword}`);
+            }
+
+            this.totalTasks = tasksResponse.totalCount;
+            return tasks;
+          })
+        )
+      )
+    );
   }
 
-  watchQueryParams(): void {
-    this.route.queryParams.subscribe(params => {
+  // Step 2: Set Up Query Parameter Watch for Filtering
+  private watchQueryParams(): void {
+    this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe((params) => {
       const keyword = params['keyword'] ? params['keyword'].toLowerCase() : '';
       this.filterTasks(keyword);
     });
   }
 
+  // Update filter value to trigger the Observable pipeline
   filterTasks(keyword: string): void {
-    if (keyword) {
-      this.tasks = this.tasks.filter(task => task.title.toLowerCase().includes(keyword));
-      this.logger.log(`Tasks filtered with keyword: ${keyword}`);
+    this.filterSubject.next(keyword);
+  }
+
+  onPageChange(event: PageEvent | number): void {
+    if (typeof event === 'number') {
+      this.currentPage = event;
     } else {
-      // If no keyword, reload the original list of tasks
-      this.loadTasks();
+      this.currentPage = event.pageIndex + 1;
+      this.pageSize = event.pageSize;
     }
+
+    this.filterTasks(this.filterSubject.getValue()); // Reload tasks with the current keyword and new pagination
+  }
+
+  navigateToTaskOverview(taskId: number): void {
+    this.router.navigate(['/tasks/overview', taskId]);
   }
 
   navigateToEditTask(taskId: number): void {
@@ -115,15 +126,12 @@ export class TaskListComponent implements OnInit {
   }
 
   deleteTask(taskId: number, event: Event): void {
-    // Stop the click event from propagating to the <li> element
     event.stopPropagation();
-
-    // Show confirmation dialog before deleting the task
     if (window.confirm('Are you sure you want to delete this task?')) {
-      this.taskService.deleteTask(taskId).subscribe({
+      this.taskService.deleteTask(taskId).pipe(takeUntil(this.destroy$)).subscribe({
         next: () => {
-          // Refresh the tasks list after deletion
-          this.loadTasks();
+          this.filterTasks(this.filterSubject.getValue()); // Reload after deletion
+          this.logger.log('Task deleted successfully.');
         },
         error: (err) => {
           this.logger.log(`Error deleting task: ${err.message}`);
@@ -134,30 +142,14 @@ export class TaskListComponent implements OnInit {
 
   toggleTaskStatus(task: Task): void {
     const updatedTask = { ...task, status: task.status === 'Pending' ? 'Completed' : 'Pending' };
-    this.taskUpdateSubject.next(updatedTask);
-    this.logger.log(`Toggling status for task with ID: ${task.id}`);
-  }
-
-  ngOnDestroy(): void {
-    this.destroy$.next(); // Emit a value to signal that it's time to complete
-    this.destroy$.complete(); // Complete the Subject to release resources
-  }
-
-  onPageChange(event: PageEvent | number): void {
-    if (typeof event === 'number') {
-      this.currentPage = event;
-    } else {
-      this.currentPage = event.pageIndex + 1;
-      this.pageSize = event.pageSize;
-    }
-
-    // Ensure currentPage stays within valid bounds
-    if (this.currentPage < 1) {
-      this.currentPage = 1;
-    } else if (this.currentPage > this.totalPages) {
-      this.currentPage = this.totalPages;
-    }
-
-    this.loadTasks(this.currentPage, this.pageSize);
+    this.taskService.updateTask(updatedTask.id!, updatedTask).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (task) => {
+        this.logger.log(`Task with ID: ${task.id} updated.`);
+        this.filterTasks(this.filterSubject.getValue()); // Refresh the list
+      },
+      error: (err) => {
+        this.logger.log(`Error updating task: ${err.message}`);
+      },
+    });
   }
 }
