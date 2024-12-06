@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Task, TaskService } from '../../services/task.service';
 import { LoggerService } from '../../services/logger.service';
@@ -11,6 +11,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { HighlightOverdueDirective } from '../../directives/highlight-overdue.directive';
 import { TaskStatusPipe } from '../../pipes/task-status.pipe';
 import { DaysUntilDuePipe } from '../../pipes/days-until-due.pipe';
+import { Store } from '@ngrx/store';
+import { selectAllTasks, selectPaginatedTasks } from '../../store/task.selectors';
+import { loadTasks } from '../../store/task.actions';
 
 @Component({
   selector: 'app-task-list',
@@ -30,7 +33,9 @@ import { DaysUntilDuePipe } from '../../pipes/days-until-due.pipe';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class TaskListComponent implements OnInit, OnDestroy {
-  tasks$!: Observable<Task[]>; // Observable for tasks list to bind using async pipe
+  private readonly store = inject(Store);
+  tasks$: Observable<Task[]> = this.store.select(selectAllTasks);
+
   private filterSubject = new BehaviorSubject<string>(''); // Subject to manage the filter keyword
 
   totalTasks = 0;
@@ -47,8 +52,18 @@ export class TaskListComponent implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit(): void {
-    this.setupFilteredTasks();
-    this.watchQueryParams();
+    this.loadTasks();
+    //this.setupFilteredTasks();
+    //this.watchQueryParams();
+  }
+
+  loadTasks(): void {
+    this.store.dispatch(
+      loadTasks({
+        page: this.currentPage,
+        pageSize: this.pageSize
+      })
+    )
   }
 
   ngOnDestroy(): void {

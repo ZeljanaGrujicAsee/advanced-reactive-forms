@@ -11,13 +11,28 @@ import { provideAnimations } from '@angular/platform-browser/animations';
 import { LoadingInterceptor } from './services/loading.interceptor';
 import { ErrorInterceptor } from './services/error.interceptor';
 
+import { provideStore } from '@ngrx/store'
+import { provideEffects } from '@ngrx/effects'
+import { taskReducer } from './store/task.reducer';
+import { TaskEffects } from './store/task.effects';
+import { provideStoreDevtools } from '@ngrx/store-devtools'
+
 export function loggerFactory(): LoggerService {
   const isDev = true; // Determine this dynamically based on environment
   return isDev ? new ConsoleLoggerService() : new FileLoggerService();
 }
 
+const rootReducers = {
+  tasks: taskReducer
+};
+
+const rootEffects = [TaskEffects];
+
 export const appConfig: ApplicationConfig = {
   providers: [
+    provideStore(rootReducers),
+    provideEffects(rootEffects),
+    provideStoreDevtools({maxAge: 25}),
     provideAnimations(),
     provideHttpClient(
       withInterceptors([
