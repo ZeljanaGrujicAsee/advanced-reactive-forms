@@ -9,6 +9,9 @@ import { TaskService } from '../../services/task.service';
 import { LOGGER_SERVICES } from '../../services/logger.tokens';
 import { LoggerService } from '../../services/logger.service';
 import { CanComponentDeactivate } from '../../guards/can-deactivate.guard';
+import { Store } from '@ngrx/store';
+import { addTask } from '../../store/task.actions';
+import { filter } from 'rxjs';
 
 @Component({
   selector: 'app-task-create',
@@ -24,6 +27,7 @@ export class TaskCreateComponent implements OnInit, CanComponentDeactivate {
   constructor(
     private fb: FormBuilder,
     private router: Router,
+    private store: Store,
     private taskService: TaskService,
     @Inject(LOGGER_SERVICES) private loggers: LoggerService[]
   ) {
@@ -41,7 +45,6 @@ export class TaskCreateComponent implements OnInit, CanComponentDeactivate {
   }
 
   ngOnInit(): void {
-    this.log('TaskCreateComponent initialized.');
     this.taskForm.get('startDate')?.valueChanges.subscribe((startDateValue) => {
       const dueDateControl = this.taskForm.get('dueDate');
 
@@ -109,19 +112,21 @@ export class TaskCreateComponent implements OnInit, CanComponentDeactivate {
         }
       };
 
-      this.taskService.addTask(newTask).subscribe({
-        next: () => {
-          console.log('New Task:', newTask);
-          window.alert('Task created successfully!');
-          this.taskForm.reset();
-          this.hasUnsavedChanges = false;
-          this.router.navigate(['/tasks']);
-        },
-        error: (err) => {
-          console.error('Error creating task:', err);
-          window.alert('An error occurred while creating the task. Please try again.');
-        }
-      });
+      this.store.dispatch(addTask({ task: newTask }));
+      this.hasUnsavedChanges = false;
+      // this.taskService.addTask(newTask).subscribe({
+      //   next: () => {
+      //     console.log('New Task:', newTask);
+      //     window.alert('Task created successfully!');
+      //     this.taskForm.reset();
+      //     this.hasUnsavedChanges = false;
+      //     this.router.navigate(['/tasks']);
+      //   },
+      //   error: (err) => {
+      //     console.error('Error creating task:', err);
+      //     window.alert('An error occurred while creating the task. Please try again.');
+      //   }
+      // });
     } else {
       this.log('Form submission failed due to validation errors.');
     }

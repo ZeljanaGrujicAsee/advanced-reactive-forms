@@ -3,8 +3,10 @@ import { Task, TaskService } from '../../services/task.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { Meta, Title } from '@angular/platform-browser';
-import { switchMap } from 'rxjs/operators';
+import { map, switchMap } from 'rxjs/operators';
 import { Observable } from 'rxjs';
+import { Store } from '@ngrx/store';
+import { selectIsLoading, selectTaskById } from '../../store/task.selectors';
 
 @Component({
   selector: 'app-task-overview',
@@ -15,22 +17,21 @@ import { Observable } from 'rxjs';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class TaskOverviewComponent implements OnInit {
-  task$!: Observable<Task>;
+  task$!: Observable<Task | undefined>;
 
   constructor(
     private route: ActivatedRoute,
     private taskService: TaskService,
     private router: Router,
+    private store: Store,
     private titleService: Title,
     private metaService: Meta
   ) { }
 
   ngOnInit(): void {
     this.task$ = this.route.paramMap.pipe(
-      switchMap(params => {
-        const taskId = Number(params.get('id'));
-        return this.taskService.getTaskById(taskId);
-      })
+      map((params) => Number(params.get('id'))),
+      switchMap((taskId) => this.store.select(selectTaskById(taskId)))
     );
 
     this.task$.subscribe({
