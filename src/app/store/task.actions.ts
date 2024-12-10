@@ -55,13 +55,11 @@ export const deleteTaskFailure = createAction(
     props<{ error: string }>() // Pass the error message
 );
 
-
 // filter
 export const setFilter = createAction(
     '[Task] Set Filter',
     props<{ filter: string }>() // Add a filter action
 );
-
 
 export const toggleTaskStatus = createAction(
     '[Task] Toggle Task Status',

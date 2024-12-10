@@ -1,29 +1,49 @@
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { AppComponent } from './app.component';
+import { of } from 'rxjs';
+import { LoadingService } from './services/loading.service';
+import { ActivatedRoute } from '@angular/router';
 
 describe('AppComponent', () => {
+  let fixture: ComponentFixture<AppComponent>;
+  let component: AppComponent;
+  let mockLoadingService: any;
+
   beforeEach(async () => {
+    mockLoadingService = {
+      loading$: of(false)
+    };
+
+    const mockActivatedRoute = {
+      snapshot: {
+        param: {}
+      }
+    };
+
     await TestBed.configureTestingModule({
       imports: [AppComponent],
+      providers: [
+        { provide: LoadingService, useValue: mockLoadingService },
+        { provide: ActivatedRoute, useValue: mockActivatedRoute }
+      ]
     }).compileComponents();
+
+    fixture = TestBed.createComponent(AppComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
   });
 
   it('should create the app', () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    const app = fixture.componentInstance;
-    expect(app).toBeTruthy();
+    expect(component).toBeTruthy();
   });
 
   it(`should have the 'advanced-reactive-forms' title`, () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    const app = fixture.componentInstance;
-    expect(app.title).toEqual('advanced-reactive-forms');
+    expect(component.title).toEqual('advanced-reactive-forms');
   });
 
-  it('should render title', () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    fixture.detectChanges();
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, advanced-reactive-forms');
-  });
+  it('should subscribe to the loading service on initiazliation', () => {
+    spyOn(mockLoadingService.loading$, 'subscribe');
+    component.ngOnInit();
+    expect(mockLoadingService.loading$.subscribe).toHaveBeenCalled();
+  })
 });
